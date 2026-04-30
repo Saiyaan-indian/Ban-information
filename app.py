@@ -84,7 +84,7 @@ def check_player_info(target_id):
                 period = ban_data["data"].get("period", 0)
 
                 if is_banned:
-                    ban_message = f"Banned for {period} months" if period > 0 else "Banned indefinitely"
+                    ban_message = f"Ban for {period} months" if period > 0 else "Ban indefinitely"
                 else:
                     ban_message = "Not banned"
             else:
