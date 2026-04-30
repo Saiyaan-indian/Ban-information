@@ -95,7 +95,6 @@ def check_player_info(target_id):
                 "nickname": nickname,
                 "region": region,
                 "uid": uid,
-                "uid": target_id,
                 "ban_status": ban_message,
                 "ban_period": f"{period} months" if is_banned and period > 0 else None
             }
