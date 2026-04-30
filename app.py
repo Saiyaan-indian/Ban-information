@@ -1,117 +1,109 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response
 import requests
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich import print as rprint
-from rich.progress import Progress
+import json
+import os
 
 app = Flask(__name__)
-console = Console()
 
-def check_player_info(target_id):
-    with Progress() as progress:
-        task = progress.add_task("[cyan]Fetching player data...", total=100)
-        
-        cookies = {
-            '_ga': 'GA1.1.2123120599.1674510784',
-            '_fbp': 'fb.1.1674510785537.363500115',
-            '_ga_7JZFJ14B0B': 'GS1.1.1674510784.1.1.1674510789.0.0.0',
-            'source': 'mb',
-            'region': 'MA',
-            'language': 'ar',
-            '_ga_TVZ1LG7BEB': 'GS1.1.1674930050.3.1.1674930171.0.0.0',
-            'datadome': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
-            'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
-        }
+# ✅ دالة لجلب الاسم والمنطقة
+def get_player_info(player_id):
+    cookies = {
+        'region': 'MA',
+        'language': 'ar',
+        'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
+    }
 
-        headers = {
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-            'Origin': 'https://shop2game.com',
-            'Referer': 'https://shop2game.com/app/100067/idlogin',
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Redmi Note 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'sec-ch-ua': '"Chromium";v="107", "Not=A?Brand";v="24"',
-            'sec-ch-ua-mobile': '?1',
-            'sec-ch-ua-platform': '"Android"',
-            'x-datadome-clientid': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
-        }
+    headers = {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive',
+        'Origin': 'https://shop2game.com',
+        'Referer': 'https://shop2game.com/app/100067/idlogin',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Redmi Note 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'x-datadome-clientid': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
+    }
 
-        json_data = {
-            'app_id': 100067,
-            'login_id': target_id,
-            'app_server_id': 0,
-        }
+    json_data = {
+        'app_id': 100067,
+        'login_id': f'{player_id}',
+        'app_server_id': 0,
+    }
 
-        try:
-            progress.update(task, advance=30)
-            res = requests.post('https://shop2game.com/api/auth/player_id_login', 
-                              cookies=cookies, headers=headers, json=json_data)
-
-            if res.status_code != 200 or not res.json().get('nickname'):
-                return {"error": "ID NOT FOUND"}
-
-            player_data = res.json()
-            nickname = player_data.get('nickname', 'N/A')
-            region = player_data.get('region', 'N/A')
-            uid = request.args.get('uid')
-
-            progress.update(task, advance=35)
-
-            ban_url = f'https://ff.garena.com/api/antihack/check_banned?lang=en&uid={target_id}'
-            ban_response = requests.get(ban_url, headers={
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                'Accept': 'application/json, text/plain, */*',
-                'authority': 'ff.garena.com',
-                'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-                'referer': 'https://ff.garena.com/en/support/',
-                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120"',
-                'sec-ch-ua-mobile': '?1',
-                'sec-ch-ua-platform': '"Android"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
-                'x-requested-with': 'B6FksShzIgjfrYImLpTsadjS86sddhFH',
-            })
-
-            progress.update(task, advance=35)
-            ban_data = ban_response.json()
-
-            if ban_data["status"] == "success" and "data" in ban_data:
-                is_banned = ban_data["data"].get("is_banned", 0)
-                period = ban_data["data"].get("period", 0)
-
-                if is_banned:
-                    ban_message = f"Ban for {period} months" if period > 0 else "Ban indefinitely"
-                else:
-                    ban_message = "Not banned"
-            else:
-                return {"error": "Failed to retrieve ban status"}
-
+    try:
+        res = requests.post('https://shop2game.com/api/auth/player_id_login', cookies=cookies, headers=headers, json=json_data)
+        if res.status_code == 200:
+            data = res.json()
             return {
-                "nickname": nickname,
-                "region": region,
-                "uid": uid,
-                "ban_status": ban_message,
-                "ban_period": f"{period} months" if is_banned and period > 0 else None
+                "nickname": data.get("nickname", "❌ غير متوفر"),
+                "region": data.get("region", "❌ غير معروف")
+            }
+    except:
+        pass
+
+    return {
+        "nickname": "❌ فشل في جلب الاسم",
+        "region": "❌ فشل في جلب المنطقة"
+    }
+
+
+# ✅ دالة فحص الحظر
+def check_banned(player_id):
+    url = f"https://ff.garena.com/api/antihack/check_banned?lang=en&uid={player_id}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K)",
+        "Accept": "application/json",
+        "referer": "https://ff.garena.com/en/support/",
+        "x-requested-with": "B6FksShzIgjfrYImLpTsadjS86sddhFH"
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        player_info = get_player_info(player_id)
+
+        if response.status_code == 200:
+            data = response.json().get("data", {})
+            is_banned = data.get("is_banned", 0)
+            period = data.get("period", 0)
+
+            result = {
+                "✅ status": "تم فحص الحساب بنجاح",
+                "🆔 UID": player_id,
+                "🏷️ Nickname": player_info["nickname"],
+                "🌍 Region": player_info["region"],
+                "🔒 Account": "🚫 BANNED" if is_banned else "✅ NOT BANNED",
+                "⏳ Duration": f"{period} days" if is_banned else "No ban",
+                "📊 Banned?": bool(is_banned),
+                "💎 Powered by": "@XIZBLACK & @cyber_silver01",
+                "📡 Channel": "https://t.me/DevX_Channel_x1"
             }
 
-        except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+            return Response(json.dumps(result, indent=4, ensure_ascii=False), mimetype="application/json")
 
-@app.route('/bancheck', methods=['GET'])
-def check_ban_status():
-    uid = request.args.get('uid')
-    if not uid:
-        return jsonify({"error": "UID parameter is required"}), 400
+        else:
+            return Response(json.dumps({
+                "❌ error": "Failed to fetch ban status from Garena server",
+                "status_code": 500
+            }, indent=4), mimetype="application/json")
+    except Exception as e:
+        return Response(json.dumps({
+            "💥 exception": str(e),
+            "status_code": 500
+        }, indent=4), mimetype="application/json")
 
-    result = check_player_info(uid)
-    if "error" in result:
-        return jsonify(result), 404
 
-    return jsonify(result)
+@app.route("/check", methods=["GET"])
+def check():
+    player_id = request.args.get("uid", "")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=443, debug=True)
+    if not player_id:
+        return Response(json.dumps({
+            "⚠️ error": "Player ID (uid) is required!",
+            "status_code": 400
+        }, indent=4), mimetype="application/json")
+
+    return check_banned(player_id)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
