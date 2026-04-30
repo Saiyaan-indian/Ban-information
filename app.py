@@ -1,14 +1,12 @@
-from flask import Flask, request, Response
+from flask import Flask, request, jsonify
 import requests
-import json
-import os
 
 app = Flask(__name__)
 
 def get_player_info(player_id):
 
     url = "https://shop.garena.sg/api/auth/player_id_login"
-    
+
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -27,29 +25,35 @@ def get_player_info(player_id):
         "Cookie": "source=mb; region=SG; language=en; mspid2-2f6c6989c48ddf7bb10ed6524587b4ac; _fbp=fb.1.1777149093959.8996558758423537; _ga-GA1.1.1121598805.1777149095; datadome=cr6eYz_0Ekonc8FNbWJOA81W~JRJ16dYiRflc4s0KvPkLyRwxcWsbc16kex7K2BP9_z8BjkR3NmzBIAv0jL8mekQITkigqbDGFU9UxtE1jPvwaW3GAX4GDrGe9m80DxL; _ga_PMR65LMTYY=GS2.1.s1777149094$o1$g1$t1777149435$j58$10$h0",
     }
 
-    json_data = {
-        'app_id': 100067,
-        'login_id': f'{player_id}',
-        'app_server_id': 0,
+    payload = {
+        "app_id": 100067,
+        "login_id": f"{player_id}",
+        "app_server_id": 0,
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        if res.status_code == 200:
-            data = res.json()
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        if response.status_code == 200:
+            data = response.json()
+            # The API returns lowercase keys "nickname" and "region"
             return {
-                "Nickname": data.get("nickname", "?"),
-                "Region": data.get("region", "?")
+                "nickname": data.get("nickname", "?"),
+                "region": data.get("region", "?")
             }
-    except:
+    except Exception:
+        # Any network or parsing error → fallback
         pass
 
-    return {
-        "nickname": "?",
-        "region": "?"
-    }
+    return {"nickname": "?", "region": "?"}
+
 
 def check_banned(player_id):
+    """
+    Combine player info with ban status from the Garena anti-hack API.
+    """
+    # Fixed: player_info now always uses lowercase keys
+    player_info = get_player_info(player_id)
+
     url = f"https://ff.garena.com/api/antihack/check_banned?lang=en&uid={player_id}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Linux; Android 10; K)",
@@ -59,35 +63,34 @@ def check_banned(player_id):
     }
 
     try:
-        response = requests.get(url, headers=headers)
-        player_info = get_player_info(player_id)
+        ban_response = requests.get(url, headers=headers, timeout=20)
 
-        if response.status_code == 200:
-            data = response.json().get("data", {})
+        if ban_response.status_code == 200:
+            data = ban_response.json().get("data", {})
             is_banned = data.get("is_banned", 0)
             period = data.get("period", 0)
 
             result = {
-                "Nickname": player_info["nickname"],
+                "Nickname": player_info["nickname"],       # lowercase key access now works
                 "Region": player_info["region"],
                 "UID": player_id,
                 "Account": "BANNED🚫" if is_banned else "NOT BANNED",
                 "Duration": f"{period} {'DAY' if period == 1 else 'DAYS'}" if is_banned else "NOT FOUND",
                 "Banned": "TRUE" if is_banned else "FALSE",
             }
-
-            return Response(json.dumps(result, indent=4, ensure_ascii=False), mimetype="application/json")
+            return jsonify(result)
 
         else:
-            return Response(json.dumps({
+            return jsonify({
                 "❌ error": "Failed to fetch ban status from Garena server",
                 "status_code": 500
-            }, indent=4), mimetype="application/json")
+            }), 500
+
     except Exception as e:
-        return Response(json.dumps({
+        return jsonify({
             "💥 exception": str(e),
             "status_code": 500
-        }, indent=4), mimetype="application/json")
+        }), 500
 
 
 @app.route("/check", methods=["GET"])
@@ -95,10 +98,10 @@ def check():
     player_id = request.args.get("uid", "")
 
     if not player_id:
-        return Response(json.dumps({
+        return jsonify({
             "⚠️ error": "Player ID (uid) is required !",
             "status_code": 400
-        }, indent=4), mimetype="application/json")
+        }), 400
 
     return check_banned(player_id)
 
