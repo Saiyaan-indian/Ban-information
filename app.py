@@ -34,12 +34,12 @@ def get_player_info(player_id):
     }
 
     try:
-        response = requests.post(url, headers=headers, json=json_data)
+        response = requests.post(url, headers=headers, json=payload)
         if res.status_code == 200:
             data = res.json()
             return {
-                "nickname": data.get("nickname", "?"),
-                "region": data.get("region", "?")
+                "Nickname": data.get("nickname", "?"),
+                "Region": data.get("region", "?")
             }
     except:
         pass
