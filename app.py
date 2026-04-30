@@ -56,6 +56,8 @@ def check_player_info(target_id):
             player_data = res.json()
             nickname = player_data.get('nickname', 'N/A')
             region = player_data.get('region', 'N/A')
+            uid = player_data.get('uid', 'N/A')
+            uid = request.args.get('uid')
 
             progress.update(task, advance=35)
 
@@ -93,6 +95,7 @@ def check_player_info(target_id):
                 "nickname": nickname,
                 "region": region,
                 "uid": uid,
+                "uid": target_id,
                 "ban_status": ban_message,
                 "ban_period": f"{period} months" if is_banned and period > 0 else None
             }
