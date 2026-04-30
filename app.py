@@ -1,80 +1,56 @@
-from flask import Flask, request, Response
+from flask import Flask, request, jsonify
 import requests
-import json
-import math
 
 app = Flask(__name__)
 
-
 def get_player_info(player_id):
-    cookies = {
-        '_ga': 'GA1.1.2123120599.1674510784',
-        '_fbp': 'fb.1.1674510785537.363500115',
-        '_ga_7JZFJ14B0B': 'GS1.1.1674510784.1.1.1674510789.0.0.0',
-        'source': 'mb',
-        'region': 'MA',
-        'language': 'ar',
-        '_ga_TVZ1LG7BEB': 'GS1.1.1674930050.3.1.1674930171.0.0.0',
-        'datadome': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
-        'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
-    }
+
+    url = "https://shop.garena.sg/api/auth/player_id_login"
 
     headers = {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Connection': 'keep-alive',
-        'Origin': 'https://shop2game.com',
-        'Referer': 'https://shop2game.com/app/100067/idlogin',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Redmi Note 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-datadome-clientid': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-MM,en-US;q=0.9,en;q=0.8",
+        "Content-Type": "application/json",
+        "Origin": "https://shop.garena.sg",
+        "Referer": "https://shop.garena.sg/?app=100067",
+        "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Android WebView";v="138"',
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": '"Android"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 15; RMX5070 Build/UKQ1.231108.001) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.157 Mobile Safari/537.36",
+        "X-Requested-With": "mark.via.gp",
+        "Cookie": "source=mb; region=SG; language=en; mspid2-2f6c6989c48ddf7bb10ed6524587b4ac; _fbp=fb.1.1777149093959.8996558758423537; _ga-GA1.1.1121598805.1777149095; datadome=cr6eYz_0Ekonc8FNbWJOA81W~JRJ16dYiRflc4s0KvPkLyRwxcWsbc16kex7K2BP9_z8BjkR3NmzBIAv0jL8mekQITkigqbDGFU9UxtE1jPvwaW3GAX4GDrGe9m80DxL; _ga_PMR65LMTYY=GS2.1.s1777149094$o1$g1$t1777149435$j58$10$h0",
     }
 
-    json_data = {
-        'app_id': 100067,
-        'login_id': f'{player_id}',
-        'app_server_id': 0,
+    payload = {
+        "app_id": 100067,
+        "login_id": f"{player_id}",
+        "app_server_id": 0,
     }
 
     try:
-        res = requests.post('https://shop2game.com/api/auth/player_id_login', cookies=cookies, headers=headers, json=json_data)
-        if res.status_code == 200:
-            data = res.json()
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        if response.status_code == 200:
+            data = response.json()
+
             return {
                 "nickname": data.get("nickname", "?"),
                 "region": data.get("region", "?")
             }
-    except:
+    except Exception:
+
         pass
 
-    return {
-        "nickname": "?",
-        "region": "?"
-    }
-
-
-def format_duration(days):
-    """Convert days into a readable string with days, months (30 days), years (365 days)."""
-    if days <= 0:
-        return "0 Days"
-
-    years = days // 365
-    remaining_days = days % 365
-    months = remaining_days // 30
-    days_remain = remaining_days % 30
-
-    parts = []
-    if years > 0:
-        parts.append(f"{years} {'Year' if years == 1 else 'Years'}")
-    if months > 0:
-        parts.append(f"{months} {'Month' if months == 1 else 'Months'}")
-    if days_remain > 0:
-        parts.append(f"{days_remain} {'Day' if days_remain == 1 else 'Days'}")
-
-    return " ".join(parts) if parts else "0 Days"
+    return {"nickname": "?", "region": "?"}
 
 
 def check_banned(player_id):
+
+    player_info = get_player_info(player_id)
+
     url = f"https://ff.garena.com/api/antihack/check_banned?lang=en&uid={player_id}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Linux; Android 10; K)",
@@ -84,40 +60,32 @@ def check_banned(player_id):
     }
 
     try:
-        response = requests.get(url, headers=headers)
-        player_info = get_player_info(player_id)
+        ban_response = requests.get(url, headers=headers, timeout=20)
 
-        if response.status_code == 200:
-            data = response.json().get("data", {})
+        if ban_response.status_code == 200:
+            data = ban_response.json().get("data", {})
             is_banned = data.get("is_banned", 0)
-            period_days = data.get("period", 0)   # API returns period in days
-
-            # Format duration only if banned and period > 0
-            duration_str = "NOT FOUND"
-            if is_banned and period_days > 0:
-                duration_str = format_duration(period_days)
+            period = data.get("period", 0)
 
             result = {
                 "Nickname": player_info["nickname"],
                 "Region": player_info["region"],
                 "UID": player_id,
                 "Account": "BANNED🚫" if is_banned else "NOT BANNED",
-                "Duration": duration_str,
-                "Banned": "TRUE" if is_banned else "FALSE",
             }
-
-            return Response(json.dumps(result, indent=4, ensure_ascii=False), mimetype="application/json")
+            return jsonify(result)
 
         else:
-            return Response(json.dumps({
+            return jsonify({
                 "❌ error": "Failed to fetch ban status from Garena server",
                 "status_code": 500
-            }, indent=4), mimetype="application/json")
+            }), 500
+
     except Exception as e:
-        return Response(json.dumps({
+        return jsonify({
             "💥 exception": str(e),
             "status_code": 500
-        }, indent=4), mimetype="application/json")
+        }), 500
 
 
 @app.route("/check", methods=["GET"])
@@ -125,10 +93,10 @@ def check():
     player_id = request.args.get("uid", "")
 
     if not player_id:
-        return Response(json.dumps({
+        return jsonify({
             "⚠️ error": "Player ID (uid) is required !",
             "status_code": 400
-        }, indent=4), mimetype="application/json")
+        }), 400
 
     return check_banned(player_id)
 
