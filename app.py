@@ -5,7 +5,6 @@ import os
 
 app = Flask(__name__)
 
-# ✅ دالة لجلب الاسم والمنطقة
 def get_player_info(player_id):
     cookies = {
             '_ga': 'GA1.1.2123120599.1674510784',
@@ -17,8 +16,7 @@ def get_player_info(player_id):
             '_ga_TVZ1LG7BEB': 'GS1.1.1674930050.3.1.1674930171.0.0.0',
             'datadome': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
             'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
-        }
-
+    }
 
     headers = {
         'Accept-Language': 'en-US,en;q=0.9',
@@ -42,19 +40,17 @@ def get_player_info(player_id):
         if res.status_code == 200:
             data = res.json()
             return {
-                "nickname": data.get("nickname", "❌ غير متوفر"),
-                "region": data.get("region", "❌ غير معروف")
+                "nickname": data.get("nickname", "?"),
+                "region": data.get("region", "?")
             }
     except:
         pass
 
     return {
-        "nickname": "❌ فشل في جلب الاسم",
-        "region": "❌ فشل في جلب المنطقة"
+        "nickname": "?",
+        "region": "?"
     }
 
-
-# ✅ دالة فحص الحظر
 def check_banned(player_id):
     url = f"https://ff.garena.com/api/antihack/check_banned?lang=en&uid={player_id}"
     headers = {
@@ -74,15 +70,12 @@ def check_banned(player_id):
             period = data.get("period", 0)
 
             result = {
-                "✅ status": "تم فحص الحساب بنجاح",
-                "🆔 UID": player_id,
-                "🏷️ Nickname": player_info["nickname"],
-                "🌍 Region": player_info["region"],
-                "🔒 Account": "🚫 BANNED" if is_banned else "✅ NOT BANNED",
-                "⏳ Duration": f"{period} days" if is_banned else "No ban",
-                "📊 Banned?": bool(is_banned),
-                "💎 Powered by": "@XIZBLACK & @cyber_silver01",
-                "📡 Channel": "https://t.me/DevX_Channel_x1"
+                "Nickname": player_info["nickname"],
+                "Region": player_info["region"],
+                "UID": player_id,
+                "Account": "BANNED 🚫" if is_banned else "NOT BANNED",
+                "Duration": f"{period} days" if is_banned else "No ban",
+                "Banned": bool(is_banned),
             }
 
             return Response(json.dumps(result, indent=4, ensure_ascii=False), mimetype="application/json")
@@ -105,7 +98,7 @@ def check():
 
     if not player_id:
         return Response(json.dumps({
-            "⚠️ error": "Player ID (uid) is required!",
+            "⚠️ error": "Player ID (uid) is required !",
             "status_code": 400
         }, indent=4), mimetype="application/json")
 
@@ -113,4 +106,4 @@ def check():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host='0.0.0.0', port=443, debug=True)
