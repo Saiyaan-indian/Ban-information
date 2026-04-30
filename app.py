@@ -7,15 +7,15 @@ app = Flask(__name__)
 
 def get_player_info(player_id):
     cookies = {
-            '_ga': 'GA1.1.2123120599.1674510784',
-            '_fbp': 'fb.1.1674510785537.363500115',
-            '_ga_7JZFJ14B0B': 'GS1.1.1674510784.1.1.1674510789.0.0.0',
-            'source': 'mb',
-            'region': 'MA',
-            'language': 'ar',
-            '_ga_TVZ1LG7BEB': 'GS1.1.1674930050.3.1.1674930171.0.0.0',
-            'datadome': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
-            'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
+        '_ga': 'GA1.1.2123120599.1674510784',
+        '_fbp': 'fb.1.1674510785537.363500115',
+        '_ga_7JZFJ14B0B': 'GS1.1.1674510784.1.1.1674510789.0.0.0',
+        'source': 'mb',
+        'region': 'MA',
+        'language': 'ar',
+        '_ga_TVZ1LG7BEB': 'GS1.1.1674930050.3.1.1674930171.0.0.0',
+        'datadome': '6h5F5cx_GpbuNtAkftMpDjsbLcL3op_5W5Z-npxeT_qcEe_7pvil2EuJ6l~JlYDxEALeyvKTz3~LyC1opQgdP~7~UDJ0jYcP5p20IQlT3aBEIKDYLH~cqdfXnnR6FAL0',
+        'session_key': 'efwfzwesi9ui8drux4pmqix4cosane0y',
     }
 
     headers = {
@@ -36,7 +36,8 @@ def get_player_info(player_id):
     }
 
     try:
-        res = requests.post('https://shop2game.com/api/auth/player_id_login', cookies=cookies, headers=headers, json=json_data)
+        res = requests.post('https://shop2game.com/api/auth/player_id_login',
+                            cookies=cookies, headers=headers, json=json_data)
         if res.status_code == 200:
             data = res.json()
             return {
@@ -50,6 +51,27 @@ def get_player_info(player_id):
         "nickname": "?",
         "region": "?"
     }
+
+
+def format_duration(seconds):
+    """Convert ban duration in seconds to a readable string."""
+    if seconds == 0:
+        return "PERMANENT"
+
+    days = seconds // 86400
+    remainder = seconds % 86400
+    hours = remainder // 3600
+    remainder %= 3600
+    minutes = remainder // 60
+    secs = remainder % 60
+
+    if days >= 1:
+        # e.g. "2Days 10h:00min:00sec"
+        return f"{days}Days {hours:02d}h:{minutes:02d}min:{secs:02d}sec"
+    else:
+        # e.g. "22h:10min:03 sec"
+        return f"{hours}h:{minutes:02d}min:{secs:02d} sec"
+
 
 def check_banned(player_id):
     url = f"https://ff.garena.com/api/antihack/check_banned?lang=en&uid={player_id}"
@@ -67,19 +89,21 @@ def check_banned(player_id):
         if response.status_code == 200:
             data = response.json().get("data", {})
             is_banned = data.get("is_banned", 0)
-            period = data.get("period", 0)
+            period = data.get("period", 0)   # assumed to be in seconds
 
+            # Build the result with updated formatting
             result = {
                 "Nickname": player_info["nickname"],
                 "Region": player_info["region"],
                 "UID": player_id,
-                "Account": "BANNED🚫" if is_banned else "NOT BANNED",
-                "Duration": f"{period} days" if is_banned else "NOT FOUND",
-                "Banned": bool(is_banned),
+                "Account": "BANNED 🚫" if is_banned else "NOT BANNED",
+                "Duration": format_duration(period) if is_banned else "NOT FOUND",
+                # Capitalized string "True"/"False" instead of boolean
+                "Banned": "True" if is_banned else "False",
             }
 
-            return Response(json.dumps(result, indent=4, ensure_ascii=False), mimetype="application/json")
-
+            return Response(json.dumps(result, indent=4, ensure_ascii=False),
+                            mimetype="application/json")
         else:
             return Response(json.dumps({
                 "❌ error": "Failed to fetch ban status from Garena server",
