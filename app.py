@@ -57,7 +57,6 @@ def check_player_info(target_id):
             nickname = player_data.get('nickname', 'N/A')
             region = player_data.get('region', 'N/A')
             uid = player_data.get('uid', 'N/A')
-            uid = request.args.get('uid')
 
             progress.update(task, advance=35)
 
