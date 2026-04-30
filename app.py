@@ -73,7 +73,7 @@ def check_banned(player_id):
                 "Nickname": player_info["nickname"],
                 "Region": player_info["region"],
                 "UID": player_id,
-                "Account": "BANNED 🚫" if is_banned else "NOT BANNED",
+                "Account": "BANNED🚫" if is_banned else "NOT BANNED",
                 "Duration": f"{period} days" if is_banned else "NOT FOUND",
                 "Banned": bool(is_banned),
             }
